@@ -1,0 +1,325 @@
+---
+import '@fontsource/inter/400.css';
+import '@fontsource/inter/800.css';
+import interFont400 from '@fontsource/inter/files/inter-latin-400-normal.woff2?url';
+import interFont800 from '@fontsource/inter/files/inter-latin-800-normal.woff2?url';
+import ROICalculator from '../components/ROICalculator';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>MBA ROI Calculator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Calculate your MBA return on investment over 10 years. Bloomberg-style interactive calculator." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" as="font" type="font/woff2" href={interFont400} crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href={interFont800} crossorigin />
+    <style>
+      /* ── Reset & base ──────────────────────────────────────────────────────── */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --accent: #00BFA6;
+        --accent-dim: #00a08a;
+        --bg: #ffffff;
+        --bg-results: #f6f6f6;
+        --bg-card: #ffffff;
+        --text: #1a1a1a;
+        --text-secondary: #666666;
+        --text-muted: #999999;
+        --border: #e0e0e0;
+        --rail: #1a1a1a;
+        --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+
+      html {
+        font-family: var(--font);
+        color: var(--text);
+        background: var(--bg);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      body {
+        min-height: 100vh;
+        background: var(--bg);
+      }
+
+      a { color: var(--accent-dim); }
+      a:hover { color: var(--accent); }
+
+      /* ── Calculator layout ─────────────────────────────────────────────────── */
+      .roi-calculator {
+        max-width: 740px;
+        margin: 0 auto;
+        padding: 48px 24px 80px;
+      }
+
+      /* ── Header ────────────────────────────────────────────────────────────── */
+      .roi-header {
+        margin-bottom: 40px;
+      }
+
+      .roi-title {
+        font-size: 2rem;
+        font-weight: 800;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        margin-bottom: 12px;
+        color: var(--text);
+      }
+
+      .roi-description {
+        font-size: 1.05rem;
+        line-height: 1.6;
+        color: var(--text-secondary);
+      }
+
+      /* ── Results section ───────────────────────────────────────────────────── */
+      .roi-results {
+        background: var(--bg-results);
+        border-radius: 8px;
+        padding: 28px 24px 20px;
+        margin-bottom: 48px;
+      }
+
+      .roi-results-summary {
+        margin-bottom: 24px;
+      }
+
+      .roi-results-headline {
+        font-size: 1.1rem;
+        line-height: 1.5;
+        color: var(--text);
+      }
+
+      .roi-accent {
+        color: var(--accent-dim);
+        font-weight: 800;
+      }
+
+      .roi-results-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .roi-results-returns {
+        border-top: 1px solid var(--border);
+        padding-top: 16px;
+      }
+
+      .roi-result-card {
+        background: var(--bg-card);
+        border-radius: 6px;
+        padding: 14px 12px;
+        border: 1px solid var(--border);
+      }
+
+      .roi-result-value {
+        font-size: 1.05rem;
+        font-weight: 800;
+        margin-bottom: 4px;
+        letter-spacing: -0.01em;
+      }
+
+      .roi-result-label {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        line-height: 1.3;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      .roi-reset-btn {
+        display: inline-block;
+        margin-top: 8px;
+        padding: 6px 14px;
+        font-size: 0.8rem;
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        font-family: var(--font);
+        transition: all 0.15s;
+      }
+      .roi-reset-btn:hover {
+        border-color: var(--text-secondary);
+        color: var(--text);
+      }
+
+      /* ── Slider groups ─────────────────────────────────────────────────────── */
+      .roi-sliders {
+        display: flex;
+        flex-direction: column;
+        gap: 40px;
+        margin-bottom: 48px;
+      }
+
+      .roi-slider-group {
+        /* each question block */
+      }
+
+      .roi-slider-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 4px;
+      }
+
+      .roi-slider-title {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: var(--text);
+      }
+
+      .roi-slider-subtitle {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        margin-bottom: 28px;
+        line-height: 1.4;
+      }
+      .roi-slider-subtitle strong {
+        color: var(--text);
+      }
+
+      /* ── Slider track & controls ───────────────────────────────────────────── */
+      .roi-slider-container {
+        position: relative;
+        padding-top: 32px;
+        user-select: none;
+        touch-action: none;
+      }
+
+      .roi-slider-tooltip {
+        position: absolute;
+        top: 0;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        pointer-events: none;
+      }
+
+      .roi-slider-tooltip-text {
+        font-size: 0.9rem;
+        font-weight: 800;
+        color: var(--accent-dim);
+        white-space: nowrap;
+      }
+
+      .roi-slider-tooltip-arrow {
+        margin-top: 2px;
+      }
+
+      .roi-slider-track {
+        position: relative;
+        height: 24px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+      }
+
+      .roi-slider-rail {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 50%;
+        height: 2px;
+        background: var(--rail);
+        transform: translateY(-50%);
+        border-radius: 1px;
+      }
+
+      .roi-slider-thumb {
+        position: absolute;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 2;
+        cursor: grab;
+        line-height: 0;
+      }
+      .roi-slider-thumb:active {
+        cursor: grabbing;
+      }
+
+      .roi-slider-median {
+        position: absolute;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 1;
+      }
+
+      .roi-slider-median-badge {
+        display: inline-block;
+        background: var(--rail);
+        color: #ffffff;
+        font-size: 0.65rem;
+        font-weight: 800;
+        padding: 2px 7px;
+        border-radius: 3px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+      }
+
+      .roi-slider-range {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 6px;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+      }
+
+      /* ── Focus / keyboard support ──────────────────────────────────────────── */
+      .roi-slider-track:focus {
+        outline: none;
+      }
+      .roi-slider-track:focus-visible .roi-slider-thumb svg polygon {
+        fill: var(--accent);
+      }
+
+      /* ── Footer ────────────────────────────────────────────────────────────── */
+      .roi-footer {
+        border-top: 1px solid var(--border);
+        padding-top: 24px;
+      }
+
+      .roi-footer p {
+        font-size: 0.82rem;
+        line-height: 1.6;
+        color: var(--text-muted);
+      }
+
+      /* ── Responsive ────────────────────────────────────────────────────────── */
+      @media (max-width: 640px) {
+        .roi-calculator {
+          padding: 32px 16px 60px;
+        }
+
+        .roi-title {
+          font-size: 1.5rem;
+        }
+
+        .roi-results-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .roi-results {
+          padding: 20px 16px 16px;
+        }
+
+        .roi-results-headline {
+          font-size: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <ROICalculator client:load />
+  </body>
+</html>
